@@ -92,17 +92,24 @@ const ExpensesListPage: React.FC = () => {
   };
 
   //TODO: Change the sorting logic to implement useMemo
-  const sortedExpenses = [...expenses].sort((a, b) => {
+  const sortedExpenses = useMemo(() => {
+    const arr = [...expenses].sort((a, b) => {
     //TODO: Have the sorting logic here for date(default when you land on the page) and cost, asc and desc.
     //TODO: use the helper function `toTime`
-    let cmp = 0;
-    if (sortBy === "date") {
-      //TODO: Add logic
-    } else {
-      //TODO: Add logic
-    }
-    return sortDir === "asc" ? cmp : -cmp;
-  });
+      let cmp = 0;
+      if (sortBy === "date") {
+        //TODO: Add logic
+        cmp = toTime(a.date) - toTime(b.date);
+      } else {
+        //TODO: Add logic
+        const ac = Number((a as any).cost) || 0;
+        const bc = Number((b as any).cost) || 0;
+        cmp = ac - bc;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [expenses, sortBy, sortDir]);
 
   const toggleDir = () => setSortDir((d) => (d === "asc" ? "desc" : "asc"));
 
@@ -207,20 +214,24 @@ const ExpensesListPage: React.FC = () => {
         style={{ height: LIST_HEIGHT }}
       >
         {/* TODO: Implement the Empty List fallback using  <div className="no-expenses" data-testid="empty-state"> */}
-        <List
-          rowComponent={ExpensesRowComponent}
-          rowCount={sortedExpenses.length}
-          rowHeight={ROW_HEIGHT}
-          rowProps={{
-            expenses: sortedExpenses,
-            editingId,
-            tempEdit,
-            setTempEdit,
-            setEditingId,
-            onSave: saveEdit,
-            onDelete: deleteExpense,
-          }}
-        />
+        {sortedExpenses.length === 0 ? (
+          <div className="no-expenses" data-testid="empty-state">No expenses yet.</div>
+        ) : (
+          <List
+            rowComponent={ExpensesRowComponent}
+            rowCount={sortedExpenses.length}
+            rowHeight={ROW_HEIGHT}
+            rowProps={{
+              expenses: sortedExpenses,
+              editingId,
+              tempEdit,
+              setTempEdit,
+              setEditingId,
+              onSave: saveEdit,
+              onDelete: deleteExpense,
+            }}
+          />
+        )}
       </div>
 
       <dialog

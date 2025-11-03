@@ -38,8 +38,21 @@ export async function signUp(
   seed: boolean = true
 ) {
   try {
-    //TODO : Implement firebase email sign up functionality
-    const cred = null;
+    //TODO: Implement firebase email sign up functionality
+    let cred: any = null;
+    for (let i = 0; i < 20; i++) {
+      try {
+        cred = await createUserWithEmailAndPassword(auth, email, password);
+        break;
+      } catch (e: any) {
+        if (e?.code === "auth/network-request-failed" || /fetch failed/i.test(String(e?.message))) {
+          await new Promise(r => setTimeout(r, 250));
+          continue;
+        }
+        throw e;
+      }
+    }
+
     const isLocal =
       typeof window !== "undefined" && location.hostname === "localhost";
 
@@ -48,8 +61,8 @@ export async function signUp(
     }
 
     //TODO: Return cred.user on success and Error on failure
-    //if (cred) return cred.user;
-    throw Error("Signup not implemented");
+    if (cred) return cred.user;
+    throw new Error("Sign up failed");
   } catch (error) {
     throw error;
   }
@@ -58,9 +71,22 @@ export async function signUp(
 export async function signIn(email: string, password: string) {
   try {
     //TODO : Implement firebase email sign in functionality, similar to signUp function above
-    const cred = null;
+    let cred: any = null;
+    for (let i = 0; i < 20; i++) {
+      try {
+        cred = await signInWithEmailAndPassword(auth, email, password);
+        break;
+      } catch (e: any) {
+        if (e?.code === "auth/network-request-failed" || /fetch failed/i.test(String(e?.message))) {
+          await new Promise(r => setTimeout(r, 250));
+          continue;
+        }
+        throw e;
+      }
+    }
     //TODO: Return cred.user on success and Error on failure
-    throw Error("Sign in not implemented");
+    if (cred) return cred.user;
+    throw new Error("Sign in failed");
   } catch (e: any) {
     throw e;
   }
@@ -71,7 +97,8 @@ export async function signOut() {
 
   try {
     //TODO: Use the firebase signOut function to sign out the current user and comment out the throw statement
-    throw Error("Sign out not implemented");
+    await fbSignOut(auth);
+    // throw Error("Sign out not implemented");
   } catch (e: any) {
     const err = new Error(
       e?.message || "Failed to sign out. Please try again."
@@ -119,16 +146,21 @@ function expensesCol(uid: string) {
 export const fetchExpenses = async (): Promise<Expense[] | {}> => {
   const uid = requireUid();
   //TODO: Implement the query to fetch the list of expenses from Firestore for the currently signed-in user
-  const q = query(expensesCol(""));
+  const q = query(
+    expensesCol(uid),
+    where("deleted", "==", false),
+    orderBy("createdAt", "desc")
+  );
+
 
   //TODO: Use the getDocs function to execute the query and get the snapshot
-  const snap = null;
+  const snap = await getDocs(q);
 
   const list: Expense[] | {} = snap.docs.map((d) => {
     const x = d.data() as any;
 
     //TODO: Map the fetched document to Expense type and return the list of expenses
-    return {};
+    return { id: d.id, ...(x as Expense) };
   });
   return list;
 };
@@ -144,9 +176,15 @@ export const addExpense = async (expense: Omit<Expense, "id">) => {
       throw new Error("Enter a valid non-negative cost");
     }
     //TODO: Implement the function add a new expense document to Firestore using the payload
-    const payload = {};
+    const payload = {
+      description: String(expense.description).trim(),
+      date: expense.date,
+      cost: Number(expense.cost),
+      deleted: false,
+      createdAt: serverTimestamp(),
+    };
     //TODO: Use the addDoc function to add the document to Firestore
-    await addDoc(expensesCol(""), payload);
+    await addDoc(expensesCol(uid), payload);
   } catch (error) {
     throw error;
   }
@@ -158,7 +196,7 @@ export const updateExpense = async (
 ) => {
   const uid = requireUid();
   //TODO: Get the document reference for the expense to be updated
-  const ref = null;
+  const ref = doc(db, "users", uid, "expenses", String(id));
 
   const body: any = {};
   if (next.description !== undefined) body.description = next.description;
@@ -167,10 +205,12 @@ export const updateExpense = async (
   if ((next as any).deleted !== undefined)
     body.deleted = !!(next as any).deleted;
   //TODO: Use the updateDoc function to update the expense document in Firestore
+  await updateDoc(ref, body);
 };
 
 export const deleteExpense = async (id: string | number) => {
   const uid = requireUid();
   const ref = doc(db, "users", uid, "expenses", String(id));
   //TODO : Implement soft delete of expense
+  await updateDoc(ref, { deleted: true });
 };

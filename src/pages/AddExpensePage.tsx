@@ -29,6 +29,14 @@ const AddExpensePage: React.FC = () => {
     const parsedCost = parseFloat(cost);
 
     //TODO: Validate the parsedCost and description before submitting
+    if (!desc.trim()) {
+      openDialog("Description is required");
+      return;
+    }
+    if (!Number.isFinite(parsedCost) || parsedCost < 0) {
+      openDialog("Enter a valid non-negative cost");
+      return;
+    }
     const payload = {
       description: desc.trim(),
       date,

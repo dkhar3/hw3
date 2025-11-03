@@ -24,8 +24,8 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 const useEmus =
-  (typeof process !== "undefined" &&
-    process.env.VITE_FB_USE_EMULATORS === "1") ||
+  (typeof import.meta !== "undefined" &&
+    import.meta.env?.VITE_FB_USE_EMULATORS === "1") ||
   (typeof window !== "undefined" &&
     (window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1"));
